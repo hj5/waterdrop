@@ -19,8 +19,8 @@
         </dependency>
         <dependency>
             <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch-spark-20_${scala.binary.version}</artifactId>
-            <version>6.8.3</version>
+            <artifactId>elasticsearch-spark-${elasticsearch-spark.version}_${scala.binary.version}</artifactId>
+            <version>${elasticsearch.version}</version>
         </dependency>
 
         <dependency>

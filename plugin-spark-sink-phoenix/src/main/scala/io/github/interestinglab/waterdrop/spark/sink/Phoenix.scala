@@ -10,7 +10,7 @@ import org.apache.phoenix.spark.ZkConnectUtil._
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class Phoenix extends SparkBatchSink with Logging {
+class Phoenix extends SparkBatchSink {
 
   var phoenixCfg: Map[String, String] = _
   val phoenixPrefix = "phoenix"
@@ -49,7 +49,7 @@ class Phoenix extends SparkBatchSink with Logging {
 
   def printParams(): Unit = {
     phoenixCfg.foreach {
-      case (key, value) => logInfo("[INFO] \t" + key + " = " + value)
+      case (key, value) => println("[INFO] \t" + key + " = " + value)
     }
   }
 

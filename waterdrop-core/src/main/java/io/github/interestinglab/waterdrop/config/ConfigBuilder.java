@@ -34,7 +34,7 @@ public class ConfigBuilder {
         this.configFile = configFile;
         this.engine = engine;
         this.configPackage = new ConfigPackage(engine.getEngine());
-        this.config = load();
+        this.config = load(session);
         this.env = createEnv(session);
     }
 
@@ -46,23 +46,32 @@ public class ConfigBuilder {
     }
 
     private Config load() {
+        return load(null);
+    }
+
+    private Config load(Object session) {
 
         if (configFile.isEmpty()) {
             throw new ConfigRuntimeException("Please specify config file");
         }
 
-        System.out.println("[INFO] Loading config file: " + configFile);
-
         // variables substitution / variables resolution order:
         // config file --> system environment --> java properties
-        Config config = ConfigFactory
-                .parseFile(new File(configFile))
-                .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true))
+        Config config;
+        if (session == null){
+            System.out.println("[INFO] Loading config file: " + configFile);
+            config = ConfigFactory
+                    .parseFile(new File(configFile));
+        } else {
+            System.out.println("[INFO] Loading config string: " + configFile);
+            config = ConfigFactory
+                    .parseString(configFile);
+        }
+        config.resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true))
                 .resolveWith(ConfigFactory.systemProperties(),
                         ConfigResolveOptions.defaults().setAllowUnresolved(true));
-
         ConfigRenderOptions options = ConfigRenderOptions.concise().setFormatted(true);
-        System.out.println("[INFO] parsed config file: " + config.root().render(options));
+        System.out.println("[INFO] parsed config: " + config.root().render(options));
         return config;
     }
 
