@@ -1,5 +1,5 @@
   <configuration>
-    
+      <!-- 放进来原因：java.lang.IllegalArgumentException: java.net.UnknownHostException: mycluster -->
     <property>
       <name>dfs.allow.truncate</name>
       <value>true</value>

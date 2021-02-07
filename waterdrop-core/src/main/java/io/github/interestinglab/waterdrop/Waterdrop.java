@@ -17,6 +17,7 @@ import io.github.interestinglab.waterdrop.utils.Engine;
 import io.github.interestinglab.waterdrop.utils.PluginType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hadoop.fs.Path;
+import scala.None;
 import scala.Option;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
@@ -34,7 +35,20 @@ public class Waterdrop {
         run(sparkParser, SPARK, args);
     }
 
+    /**
+     * 交互态执行入口
+     * @param session
+     * @param args
+     */
+    public static void exec(Object session, String[] args) {
+        OptionParser<CommandLineArgs> sparkParser = CommandLineUtils.sparkParser();
+        run(session, sparkParser, SPARK, args);
+    }
+
     public static void run(OptionParser<CommandLineArgs> parser,Engine engine,String[] args){
+        run(null, parser, engine, args);
+    }
+    public static void run(Object session, OptionParser<CommandLineArgs> parser,Engine engine,String[] args){
         Seq<String> seq = JavaConverters.asScalaIteratorConverter(Arrays.asList(args).iterator()).asScala().toSeq();
         Option<CommandLineArgs> option = parser.parse(seq, new CommandLineArgs("client", "application.conf", false));
         if (option.isDefined()) {
@@ -47,7 +61,7 @@ public class Waterdrop {
                 System.out.println("config OK !");
             } else {
                 try {
-                    entryPoint(configFilePath, engine);
+                    entryPoint(session, configFilePath, engine);
                 } catch (ConfigRuntimeException e) {
                     showConfigError(e);
                 }catch (Exception e){
@@ -78,8 +92,12 @@ public class Waterdrop {
     }
 
     private static void entryPoint(String configFile, Engine engine) {
+        entryPoint(null, configFile, engine);
+    }
 
-        ConfigBuilder configBuilder = new ConfigBuilder(configFile, engine);
+    private static void entryPoint(Object session, String configFile, Engine engine) {
+
+        ConfigBuilder configBuilder = new ConfigBuilder(session, configFile, engine);
         List<BaseSource> sources = configBuilder.createPlugins(PluginType.SOURCE);
         List<BaseTransform> transforms = configBuilder.createPlugins(PluginType.TRANSFORM);
         List<BaseSink> sinks = configBuilder.createPlugins(PluginType.SINK);

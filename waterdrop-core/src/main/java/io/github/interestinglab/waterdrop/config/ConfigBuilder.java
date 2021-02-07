@@ -30,12 +30,12 @@ public class ConfigBuilder {
     private Config envConfig;
     private RuntimeEnv env;
 
-    public ConfigBuilder(String configFile, Engine engine) {
+    public ConfigBuilder(Object session, String configFile, Engine engine) {
         this.configFile = configFile;
         this.engine = engine;
         this.configPackage = new ConfigPackage(engine.getEngine());
         this.config = load();
-        this.env = createEnv();
+        this.env = createEnv(session);
     }
 
     public ConfigBuilder(String configFile) {
@@ -156,12 +156,15 @@ public class ConfigBuilder {
     }
 
     private RuntimeEnv createEnv() {
+        return createEnv(null);
+    }
+    private RuntimeEnv createEnv(Object session) {
         envConfig = config.getConfig("env");
         streaming = checkIsStreaming();
         RuntimeEnv env = null;
         switch (engine) {
             case SPARK:
-                env = new SparkEnvironment();
+                env = new SparkEnvironment(session);
                 break;
             case FLINK:
                 env = new FlinkEnvironment();

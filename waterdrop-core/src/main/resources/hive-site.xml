@@ -1,5 +1,5 @@
   <configuration>
-    
+
     <property>
       <name>ambari.hive.db.schema.name</name>
       <value>hive</value>
@@ -512,7 +512,7 @@
     
     <property>
       <name>hive.security.authorization.enabled</name>
-      <value>true</value>
+      <value>false</value>
     </property>
     
     <property>

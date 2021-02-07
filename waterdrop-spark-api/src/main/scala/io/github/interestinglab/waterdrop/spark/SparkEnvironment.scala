@@ -11,7 +11,7 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 import scala.collection.JavaConversions._
 
-class SparkEnvironment extends RuntimeEnv {
+class SparkEnvironment(session: Object) extends RuntimeEnv {
 
   private var sparkSession: SparkSession = _
 
@@ -26,8 +26,12 @@ class SparkEnvironment extends RuntimeEnv {
   override def checkConfig(): CheckResult = new CheckResult(true, "")
 
   override def prepare(prepareEnv: lang.Boolean): Unit = {
-    val sparkConf = createSparkConf()
-    sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
+    if(session == null){
+      val sparkConf = createSparkConf()
+      sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
+    } else {
+      sparkSession = session.asInstanceOf[SparkSession]
+    }
     createStreamingContext
   }
 
