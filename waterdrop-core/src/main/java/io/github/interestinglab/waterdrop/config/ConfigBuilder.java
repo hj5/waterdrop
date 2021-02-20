@@ -67,7 +67,7 @@ public class ConfigBuilder {
             config = ConfigFactory
                     .parseFile(new File(configFile));
         }
-        config.resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true))
+        config = config.resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true))
                 .resolveWith(ConfigFactory.systemProperties(),
                         ConfigResolveOptions.defaults().setAllowUnresolved(true));
         ConfigRenderOptions options = ConfigRenderOptions.concise().setFormatted(true);

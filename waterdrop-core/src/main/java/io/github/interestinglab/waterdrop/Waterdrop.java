@@ -15,6 +15,7 @@ import io.github.interestinglab.waterdrop.plugin.Plugin;
 import io.github.interestinglab.waterdrop.utils.AsciiArtUtils;
 import io.github.interestinglab.waterdrop.utils.Engine;
 import io.github.interestinglab.waterdrop.utils.PluginType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hadoop.fs.Path;
 import scala.None;
@@ -50,23 +51,38 @@ public class Waterdrop {
     }
     public static void run(Object session, OptionParser<CommandLineArgs> parser,Engine engine,String[] args){
         Seq<String> seq = JavaConverters.asScalaIteratorConverter(Arrays.asList(args).iterator()).asScala().toSeq();
-        Option<CommandLineArgs> option = parser.parse(seq, new CommandLineArgs("client", "application.conf", false));
+        Option<CommandLineArgs> option = parser.parse(seq, new CommandLineArgs("client", "application.conf","" , false));
         if (option.isDefined()) {
             CommandLineArgs commandLineArgs = option.get();
             Common.setDeployMode(commandLineArgs.deployMode());
             String configFilePath = getConfigFilePath(commandLineArgs, engine);
-            boolean testConfig = commandLineArgs.testConfig();
-            if (testConfig) {
-                new ConfigBuilder(configFilePath).checkConfig();
-                System.out.println("config OK !");
-            } else {
-                try {
+
+            try {
+                variable2SysProp(commandLineArgs.variable());
+                boolean testConfig = commandLineArgs.testConfig();
+                if (testConfig) {
+                    new ConfigBuilder(configFilePath).checkConfig();
+                    System.out.println("config OK !");
+                } else {
                     entryPoint(session, configFilePath, engine);
-                } catch (ConfigRuntimeException e) {
-                    showConfigError(e);
-                }catch (Exception e){
-                    showFatalError(e);
                 }
+            } catch (ConfigRuntimeException e) {
+                showConfigError(e);
+            }catch (Exception e){
+                showFatalError(e);
+            }
+        }
+    }
+
+    private static void variable2SysProp(String variable) {
+        if (StringUtils.isEmpty(variable))
+            return;
+        for (String kv : variable.split(",")){
+            String[] kvArr = kv.split("=");
+            if (kvArr.length == 2){
+                System.setProperty(kvArr[0], kvArr[1]);
+            } else {
+                throw new ConfigRuntimeException("config '--variable' param value("+kv+") format error");
             }
         }
     }

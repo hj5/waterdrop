@@ -19,6 +19,7 @@ object CommandLineUtils {
       .text("check config")
     opt[String]('i', "variable")
       .optional()
+      .action((x, c) => c.copy(variable = x))
       .text(
         "variable substitution, such as -i city=beijing, or -i date=20190318")
       .maxOccurs(Integer.MAX_VALUE)
@@ -49,6 +50,7 @@ object CommandLineUtils {
       .text("spark master")
     opt[String]('i', "variable")
       .optional()
+      .action((x, c) => c.copy(variable = x))
       .text(
         "variable substitution, such as -i city=beijing, or -i date=20190318")
       .maxOccurs(Integer.MAX_VALUE)
