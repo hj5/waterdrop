@@ -39,10 +39,14 @@ public class Waterdrop {
     /**
      * 交互态执行入口
      * @param session
-     * @param args
+     * @param config
+     * @param variable
      */
-    public static void exec(Object session, String[] args) {
+    public static void exec(Object session, String config, String variable) {
         OptionParser<CommandLineArgs> sparkParser = CommandLineUtils.sparkInterpreterParser();
+        String[] args = {"--config", "", "--variable", ""};
+        args[1] = config;
+        args[3] = variable;
         run(session, sparkParser, SPARK, args);
     }
 
