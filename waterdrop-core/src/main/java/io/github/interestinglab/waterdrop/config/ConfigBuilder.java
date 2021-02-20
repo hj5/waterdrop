@@ -58,14 +58,14 @@ public class ConfigBuilder {
         // variables substitution / variables resolution order:
         // config file --> system environment --> java properties
         Config config;
-        if (session == null){
-            System.out.println("[INFO] Loading config file: " + configFile);
-            config = ConfigFactory
-                    .parseFile(new File(configFile));
-        } else {
+        if (configFile.contains("{")){
             System.out.println("[INFO] Loading config string: " + configFile);
             config = ConfigFactory
                     .parseString(configFile);
+        } else {
+            System.out.println("[INFO] Loading config file: " + configFile);
+            config = ConfigFactory
+                    .parseFile(new File(configFile));
         }
         config.resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true))
                 .resolveWith(ConfigFactory.systemProperties(),

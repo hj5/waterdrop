@@ -41,7 +41,7 @@ public class Waterdrop {
      * @param args
      */
     public static void exec(Object session, String[] args) {
-        OptionParser<CommandLineArgs> sparkParser = CommandLineUtils.sparkParser();
+        OptionParser<CommandLineArgs> sparkParser = CommandLineUtils.sparkInterpreterParser();
         run(session, sparkParser, SPARK, args);
     }
 
@@ -104,7 +104,9 @@ public class Waterdrop {
         Execution execution = configBuilder.createExecution();
         baseCheckConfig(sources, transforms, sinks);
         prepare(configBuilder.getEnv(), sources, transforms, sinks);
-        showWaterdropAsciiLogo();
+        if (session == null) {
+            showWaterdropAsciiLogo();
+        }
 
         execution.start(sources, transforms, sinks);
     }
