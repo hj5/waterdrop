@@ -168,7 +168,13 @@ public class ConfigBuilder {
         return createEnv(null);
     }
     private RuntimeEnv createEnv(Object session) {
-        envConfig = config.getConfig("env");
+        try{
+            envConfig = config.getConfig("env");
+        } catch (Exception e){
+            if (session == null){
+                throw e;
+            }
+        }
         streaming = checkIsStreaming();
         RuntimeEnv env = null;
         switch (engine) {

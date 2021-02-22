@@ -72,15 +72,20 @@ public class Waterdrop {
                 }
             } catch (ConfigRuntimeException e) {
                 showConfigError(e);
+                throw e;
             }catch (Exception e){
                 showFatalError(e);
+                throw e;
             }
         }
     }
 
     private static void variable2SysProp(String variable) {
-        if (StringUtils.isEmpty(variable))
+
+        if (StringUtils.isEmpty(variable)){
             return;
+        }
+
         for (String kv : variable.split(",")){
             String[] kvArr = kv.split("=");
             if (kvArr.length == 2){
@@ -89,6 +94,7 @@ public class Waterdrop {
                 throw new ConfigRuntimeException("config '--variable' param value("+kv+") format error");
             }
         }
+
     }
 
     private static String getConfigFilePath(CommandLineArgs cmdArgs, Engine engine) {
@@ -179,8 +185,6 @@ public class Waterdrop {
                 "\n\n===============================================================================\n\n");
         String errorMsg = throwable.getMessage();
         System.out.println("Fatal Error, \n");
-        System.out.println(
-                "Please contact garygaowork@gmail.com or issue a bug in https://github.com/InterestingLab/waterdrop/issues\n");
         System.out.println("Reason: " + errorMsg + "\n");
         System.out.println("Exception StackTrace: " + ExceptionUtils.getStackTrace(throwable));
         System.out.println(
