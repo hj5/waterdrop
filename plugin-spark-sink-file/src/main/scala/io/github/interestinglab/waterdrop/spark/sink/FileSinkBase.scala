@@ -36,7 +36,9 @@ abstract class FileSinkBase extends SparkBatchSink {
         "partition_by" -> util.Arrays.asList(),
         "save_mode" -> "error", // allowed values: overwrite, append, ignore, error
         "serializer" -> "json", // allowed values: csv, json, parquet, text
-        "path_time_format" -> "yyyyMMddHHmmss" // if variable 'now' is used in path, this option specifies its time_format
+        "path_time_format" -> "yyyyMMddHHmmss", // if variable 'now' is used in path, this option specifies its time_format
+        "kerberos.username" -> "",
+        "kerberos.keytab" -> ""
       )
     )
     config = config.withFallback(defaultConfig)

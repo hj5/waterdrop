@@ -45,6 +45,8 @@
         <module>waterdrop-common</module>
         <module>waterdrop-flink-api</module>
         <module>waterdrop-spark-api</module>
+        <module>plugin-spark-source-file</module>
+        <module>plugin-spark-source-hdfs</module>
         <module>plugin-spark-source-hive</module>
         <module>plugin-spark-source-kafka</module>
         <module>plugin-spark-source-jdbc</module>
