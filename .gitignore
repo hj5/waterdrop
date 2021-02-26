@@ -33,3 +33,5 @@ Test.scala
 test.conf
 log4j.properties
 spark-warehouse
+
+/project/build.properties
