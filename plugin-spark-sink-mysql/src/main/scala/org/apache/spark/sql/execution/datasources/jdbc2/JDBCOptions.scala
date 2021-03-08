@@ -28,15 +28,15 @@ import org.apache.spark.sql.execution.datasources.jdbc.DriverRegistry
  * Options for the JDBC data source.
  */
 class JDBCOptions(
-    @transient val parameters: CaseInsensitiveMap[String])
+    @transient val parameters: CaseInsensitiveMap)
   extends Serializable {
 
   import JDBCOptions._
 
-  def this(parameters: Map[String, String]) = this(CaseInsensitiveMap(parameters))
+  def this(parameters: Map[String, String]) = this(new CaseInsensitiveMap(parameters))
 
   def this(url: String, table: String, parameters: Map[String, String]) = {
-    this(CaseInsensitiveMap(parameters ++ Map(
+    this(new CaseInsensitiveMap(parameters ++ Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> table)))
   }
@@ -46,7 +46,7 @@ class JDBCOptions(
    */
   val asProperties: Properties = {
     val properties = new Properties()
-    parameters.originalMap.foreach { case (k, v) => properties.setProperty(k, v) }
+    parameters.foreach { case (k, v) => properties.setProperty(k, v) }
     properties
   }
 
@@ -57,7 +57,7 @@ class JDBCOptions(
    */
   val asConnectionProperties: Properties = {
     val properties = new Properties()
-    parameters.originalMap.filterKeys(key => !jdbcOptionNames(key.toLowerCase(Locale.ROOT)))
+    parameters.filterKeys(key => !jdbcOptionNames(key.toLowerCase(Locale.ROOT)))
       .foreach { case (k, v) => properties.setProperty(k, v) }
     properties
   }
@@ -191,15 +191,15 @@ class JDBCOptions(
 }
 
 class JdbcOptionsInWrite(
-    @transient override val parameters: CaseInsensitiveMap[String])
+    @transient override val parameters: CaseInsensitiveMap)
   extends JDBCOptions(parameters) {
 
   import JDBCOptions._
 
-  def this(parameters: Map[String, String]) = this(CaseInsensitiveMap(parameters))
+  def this(parameters: Map[String, String]) = this(new CaseInsensitiveMap(parameters))
 
   def this(url: String, table: String, parameters: Map[String, String]) = {
-    this(CaseInsensitiveMap(parameters ++ Map(
+    this(new CaseInsensitiveMap(parameters ++ Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> table)))
   }

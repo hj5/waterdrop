@@ -17,10 +17,11 @@
 
 package org.apache.spark.sql.execution.datasources.jdbc2
 
-import java.sql.{Connection, PreparedStatement, ResultSet, SQLException}
+import java.sql.{Connection, Date, PreparedStatement, ResultSet, SQLException, Timestamp}
+
+import org.apache.commons.lang3.StringUtils
 
 import scala.util.control.NonFatal
-
 import org.apache.spark.{InterruptibleIterator, Partition, SparkContext, TaskContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
@@ -93,16 +94,16 @@ object JDBCRDD extends Logging {
     def quote(colName: String): String = dialect.quoteIdentifier(colName)
 
     Option(f match {
-      case EqualTo(attr, value) => s"${quote(attr)} = ${dialect.compileValue(value)}"
+      case EqualTo(attr, value) => s"${quote(attr)} = ${compileValue(value)}"
       case EqualNullSafe(attr, value) =>
         val col = quote(attr)
-        s"(NOT ($col != ${dialect.compileValue(value)} OR $col IS NULL OR " +
-          s"${dialect.compileValue(value)} IS NULL) OR " +
-          s"($col IS NULL AND ${dialect.compileValue(value)} IS NULL))"
-      case LessThan(attr, value) => s"${quote(attr)} < ${dialect.compileValue(value)}"
-      case GreaterThan(attr, value) => s"${quote(attr)} > ${dialect.compileValue(value)}"
-      case LessThanOrEqual(attr, value) => s"${quote(attr)} <= ${dialect.compileValue(value)}"
-      case GreaterThanOrEqual(attr, value) => s"${quote(attr)} >= ${dialect.compileValue(value)}"
+        s"(NOT ($col != ${compileValue(value)} OR $col IS NULL OR " +
+          s"${compileValue(value)} IS NULL) OR " +
+          s"($col IS NULL AND ${compileValue(value)} IS NULL))"
+      case LessThan(attr, value) => s"${quote(attr)} < ${compileValue(value)}"
+      case GreaterThan(attr, value) => s"${quote(attr)} > ${compileValue(value)}"
+      case LessThanOrEqual(attr, value) => s"${quote(attr)} <= ${compileValue(value)}"
+      case GreaterThanOrEqual(attr, value) => s"${quote(attr)} >= ${compileValue(value)}"
       case IsNull(attr) => s"${quote(attr)} IS NULL"
       case IsNotNull(attr) => s"${quote(attr)} IS NOT NULL"
       case StringStartsWith(attr, value) => s"${quote(attr)} LIKE '${value}%'"
@@ -110,7 +111,7 @@ object JDBCRDD extends Logging {
       case StringContains(attr, value) => s"${quote(attr)} LIKE '%${value}%'"
       case In(attr, value) if value.isEmpty =>
         s"CASE WHEN ${quote(attr)} IS NULL THEN NULL ELSE FALSE END"
-      case In(attr, value) => s"${quote(attr)} IN (${dialect.compileValue(value)})"
+      case In(attr, value) => s"${quote(attr)} IN (${compileValue(value)})"
       case Not(f) => compileFilter(f, dialect).map(p => s"(NOT ($p))").getOrElse(null)
       case Or(f1, f2) =>
         // We can't compile Or filter unless both sub-filters are compiled successfully.
@@ -132,6 +133,20 @@ object JDBCRDD extends Logging {
       case _ => null
     })
   }
+
+  /**
+   * Converts value to SQL expression.
+   */
+  private def compileValue(value: Any): Any = value match {
+    case stringValue: String => s"'${escapeSql(stringValue)}'"
+    case timestampValue: Timestamp => "'" + timestampValue + "'"
+    case dateValue: Date => "'" + dateValue + "'"
+    case arrayValue: Array[Any] => arrayValue.map(compileValue).mkString(", ")
+    case _ => value
+  }
+
+  private def escapeSql(value: String): String =
+    if (value == null) null else StringUtils.replace(value, "'", "''")
 
   /**
    * Build and return JDBCRDD from the given information.
@@ -265,7 +280,7 @@ private[jdbc2] class JDBCRDD(
       closed = true
     }
 
-    context.addTaskCompletionListener[Unit]{ context => close() }
+    context.addTaskCompletionListener{ context => close() }
 
     val inputMetrics = context.taskMetrics().inputMetrics
     val part = thePart.asInstanceOf[JDBCPartition]
