@@ -37,7 +37,6 @@ import org.apache.spark.sql.catalyst.util.{CaseInsensitiveMap, DateTimeUtils, Ge
 import org.apache.spark.sql.execution.datasources.jdbc2.JDBCSaveMode.JDBCSaveMode
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.util.SchemaUtils
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.NextIterator
 import org.apache.spark.sql.execution.datasources.jdbc.{DriverRegistry, DriverWrapper}
@@ -106,13 +105,7 @@ object JdbcUtils extends Logging {
     val dialect = JdbcDialects.get(options.url)
     val statement = conn.createStatement
     try {
-      statement.setQueryTimeout(options.queryTimeout)
-      val truncateQuery = if (options.isCascadeTruncate.isDefined) {
-        dialect.getTruncateQuery(options.table, options.isCascadeTruncate)
-      } else {
-        dialect.getTruncateQuery(options.table)
-      }
-      statement.executeUpdate(truncateQuery)
+      statement.executeUpdate(s"TRUNCATE TABLE ${options.table}")
     } finally {
       statement.close()
     }
@@ -754,84 +747,15 @@ object JdbcUtils extends Logging {
       createTableColumnTypes: Option[String] = None): String = {
     val sb = new StringBuilder()
     val dialect = JdbcDialects.get(url)
-    val userSpecifiedColTypesMap = createTableColumnTypes
-      .map(parseUserSpecifiedCreateTableColumnTypes(df, _))
-      .getOrElse(Map.empty[String, String])
     df.schema.fields.foreach { field =>
       val name = dialect.quoteIdentifier(field.name)
-      val typ = userSpecifiedColTypesMap
-        .getOrElse(field.name, getJdbcType(field.dataType, dialect).databaseTypeDefinition)
+      val typ = getJdbcType(field.dataType, dialect).databaseTypeDefinition
       val nullable = if (field.nullable) "" else "NOT NULL"
       sb.append(s", $name $typ $nullable")
     }
     if (sb.length < 2) "" else sb.substring(2)
   }
 
-  /**
-   * Parses the user specified createTableColumnTypes option value string specified in the same
-   * format as create table ddl column types, and returns Map of field name and the data type to
-   * use in-place of the default data type.
-   */
-  private def parseUserSpecifiedCreateTableColumnTypes(
-      df: DataFrame,
-      createTableColumnTypes: String): Map[String, String] = {
-    def typeName(f: StructField): String = {
-      // char/varchar gets translated to string type. Real data type specified by the user
-      // is available in the field metadata as HIVE_TYPE_STRING
-      if (f.metadata.contains(HIVE_TYPE_STRING)) {
-        f.metadata.getString(HIVE_TYPE_STRING)
-      } else {
-        f.dataType.catalogString
-      }
-    }
-
-    val userSchema = CatalystSqlParser.parseTableSchema(createTableColumnTypes)
-    val nameEquality = df.sparkSession.sessionState.conf.resolver
-
-    // checks duplicate columns in the user specified column types.
-    SchemaUtils.checkColumnNameDuplication(
-      userSchema.map(_.name), "in the createTableColumnTypes option value", nameEquality)
-
-    // checks if user specified column names exist in the DataFrame schema
-    userSchema.fieldNames.foreach { col =>
-      df.schema.find(f => nameEquality(f.name, col)).getOrElse {
-        throw new AnalysisException(
-          s"createTableColumnTypes option column $col not found in schema " +
-            df.schema.catalogString)
-      }
-    }
-
-    val userSchemaMap = userSchema.fields.map(f => f.name -> typeName(f)).toMap
-    val isCaseSensitive = df.sparkSession.sessionState.conf.caseSensitiveAnalysis
-    if (isCaseSensitive) userSchemaMap else CaseInsensitiveMap(userSchemaMap)
-  }
-
-  /**
-   * Parses the user specified customSchema option value to DataFrame schema, and
-   * returns a schema that is replaced by the custom schema's dataType if column name is matched.
-   */
-  def getCustomSchema(
-      tableSchema: StructType,
-      customSchema: String,
-      nameEquality: Resolver): StructType = {
-    if (null != customSchema && customSchema.nonEmpty) {
-      val userSchema = CatalystSqlParser.parseTableSchema(customSchema)
-
-      SchemaUtils.checkColumnNameDuplication(
-        userSchema.map(_.name), "in the customSchema option value", nameEquality)
-
-      // This is resolved by names, use the custom filed dataType to replace the default dataType.
-      val newSchema = tableSchema.map { col =>
-        userSchema.find(f => nameEquality(f.name, col.name)) match {
-          case Some(c) => col.copy(dataType = c.dataType)
-          case None => col
-        }
-      }
-      StructType(newSchema)
-    } else {
-      tableSchema
-    }
-  }
 
   /**
    * Saves the RDD to the database in a single transaction.

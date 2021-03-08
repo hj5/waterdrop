@@ -18,13 +18,13 @@
 package org.apache.spark.sql.execution.datasources.jdbc2
 
 import java.sql.{Date, Timestamp}
+import java.util.TimeZone
 
 import scala.collection.mutable.ArrayBuffer
-
 import org.apache.spark.Partition
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{AnalysisException, DataFrame, Row, SaveMode, SparkSession, SQLContext}
+import org.apache.spark.sql.{AnalysisException, DataFrame, Row, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.jdbc.JdbcDialects
@@ -159,7 +159,7 @@ private[sql] object JDBCRelation extends Logging {
       resolver(f.name, columnName) || resolver(dialect.quoteIdentifier(f.name), columnName)
     }.getOrElse {
       throw new AnalysisException(s"User-defined partition column $columnName not " +
-        s"found in the JDBC relation: ${schema.simpleString(Utils.maxNumToStringFields)}")
+        s"found in the JDBC relation: ${schema.simpleString(schema.fields.size)}")
     }
     column.dataType match {
       case _: NumericType | DateType | TimestampType =>
@@ -183,10 +183,9 @@ private[sql] object JDBCRelation extends Logging {
       columnType: DataType,
       timeZoneId: String): String = {
     def dateTimeToString(): String = {
-      val timeZone = DateTimeUtils.getTimeZone(timeZoneId)
       val dateTimeStr = columnType match {
-        case DateType => DateTimeUtils.dateToString(value.toInt, timeZone)
-        case TimestampType => DateTimeUtils.timestampToString(value, timeZone)
+        case DateType => DateTimeUtils.dateToString(value.toInt)
+        case TimestampType => DateTimeUtils.timestampToString(value)
       }
       s"'$dateTimeStr'"
     }
@@ -207,11 +206,7 @@ private[sql] object JDBCRelation extends Logging {
    */
   def getSchema(resolver: Resolver, jdbcOptions: JDBCOptions): StructType = {
     val tableSchema = JDBCRDD.resolveTable(jdbcOptions)
-    jdbcOptions.customSchema match {
-      case Some(customSchema) => JdbcUtils.getCustomSchema(
-        tableSchema, customSchema, resolver)
-      case None => tableSchema
-    }
+    tableSchema
   }
 
   /**
