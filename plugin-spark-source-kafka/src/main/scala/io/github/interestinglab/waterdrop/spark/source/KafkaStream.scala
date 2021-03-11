@@ -2,8 +2,8 @@ package io.github.interestinglab.waterdrop.spark.source
 
 import java.util.Properties
 
-import io.github.interestinglab.waterdrop.config.ConfigFactory
 import io.github.interestinglab.waterdrop.common.config.{CheckResult, TypesafeConfigUtils}
+import io.github.interestinglab.waterdrop.config.ConfigFactory
 import io.github.interestinglab.waterdrop.spark.SparkEnvironment
 import io.github.interestinglab.waterdrop.spark.stream.SparkStreamingSource
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -29,10 +29,16 @@ class KafkaStream extends SparkStreamingSource[(String, String)] {
 
   private var topics: Set[String] = _
 
+  private var key_type: String = _
+
+  var test: Boolean = false
+
   override def prepare(env: SparkEnvironment): Unit = {
 
     val defaultConfig = ConfigFactory.parseMap(
       Map(
+        "key.type" -> "topic", //allowed values: topic、key
+        "test" -> "false", //是否是测试模式：不提交kafka offset
         consumerPrefix + "key.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
         consumerPrefix + "value.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
         consumerPrefix + "enable.auto.commit" -> false
@@ -40,8 +46,10 @@ class KafkaStream extends SparkStreamingSource[(String, String)] {
     )
 
     config = config.withFallback(defaultConfig)
+    key_type = config.getString("key.type")
+    test = config.getBoolean("test")
     schema = StructType(
-      Array(StructField("topic", DataTypes.StringType),
+      Array(StructField(key_type, DataTypes.StringType),
             StructField("raw_message", DataTypes.StringType)))
 
     topics = config.getString("topics").split(",").toSet
@@ -73,18 +81,28 @@ class KafkaStream extends SparkStreamingSource[(String, String)] {
       LocationStrategies.PreferConsistent,
       ConsumerStrategies.Subscribe(topics, kafkaParams))
 
-    inputDStream.transform { rdd =>
-      offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
-      rdd.map(record => {
-        val topic = record.topic()
-        val value = record.value()
-        (topic, value)
-      })
+    key_type match {
+      case "topic" =>
+        inputDStream.transform { rdd =>
+          offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
+          rdd.map(record => {
+            (record.topic(), record.value())
+          })
+        }
+      case "key" =>
+        val dStream = inputDStream.transform { rdd =>
+          offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
+          rdd.map(record => {
+            (record.key(), record.value())
+          })
+        }
+        dStream
     }
 
   }
 
   override def checkConfig(): CheckResult = {
+
     config.hasPath("topics") match {
       case true => {
         val consumerConfig = TypesafeConfigUtils.extractSubConfig(config, consumerPrefix, false)
@@ -97,9 +115,23 @@ class KafkaStream extends SparkStreamingSource[(String, String)] {
       }
       case false => new CheckResult(false, "please specify [topics] as non-empty string, multiple topics separated by \",\"")
     }
+
+    config.hasPath("key.type") match {
+      case true => {
+        config.getString("key.type") match {
+          case "topic"|"key" => new CheckResult(true, "")
+          case key_type => new CheckResult(false, "please specify [key.type] as non-empty string,allowed values: topic、key,now value:" + key_type)
+        }
+      }
+      case false => new CheckResult(true, "")
+    }
+
   }
 
   override def afterOutput(): Unit = {
+    if (test) {
+      return
+    }
     inputDStream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
     for (offsets <- offsetRanges) {
       val fromOffset = offsets.fromOffset

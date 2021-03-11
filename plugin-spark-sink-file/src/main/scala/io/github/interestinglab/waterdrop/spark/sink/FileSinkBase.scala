@@ -33,10 +33,10 @@ abstract class FileSinkBase extends SparkBatchSink {
   override def prepare(env: SparkEnvironment): Unit = {
     val defaultConfig = ConfigFactory.parseMap(
       Map(
-        "partition_by" -> util.Arrays.asList(),
-        "save_mode" -> "error", // allowed values: overwrite, append, ignore, error
-        "serializer" -> "json", // allowed values: csv, json, parquet, text
-        "path_time_format" -> "yyyyMMddHHmmss", // if variable 'now' is used in path, this option specifies its time_format
+        "partition_by" -> util.Arrays.asList(),//hdfs outputMultiPath is not supported
+        "save_mode" -> "error", // hdfs outputMultiPath just support 'append', allowed values: overwrite, append, ignore, error
+        "serializer" -> "json", // hdfs outputMultiPath just support 'text', allowed values: csv, json, parquet, text
+        "path_time_format" -> "yyyyMMddHHmmss", // hdfs outputMultiPath is not supported, if variable 'now' is used in path, this option specifies its time_format
         "kerberos.username" -> "",
         "kerberos.keytab" -> ""
       )

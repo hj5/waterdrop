@@ -3,8 +3,8 @@
     <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
     <option name="MAIN_CLASS_NAME" value="io.github.interestinglab.waterdrop.Waterdrop" />
     <module name="waterdrop-core" />
-    <option name="PROGRAM_PARAMETERS" value="--master local[1] --deploy-mode client --config ./config/spark.batch.hdfs2hdfs.kerberos.conf -i city=beijing" />
-    <option name="VM_PARAMETERS" value="-Dspark.master=local[1]" />
+    <option name="PROGRAM_PARAMETERS" value="--master local[3] --deploy-mode client --config ./config/spark.streaming_kafka2hdfs.conf -i city=beijing" />
+    <option name="VM_PARAMETERS" value="-Dspark.master=local[3]" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="io.github.interestinglab.waterdrop.*" />
